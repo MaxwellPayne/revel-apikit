@@ -11,6 +11,11 @@ func implementsRESTObject(obj interface{}) bool {
 	return t.Implements(reflect.TypeOf((*RESTObject)(nil)).Elem())
 }
 
+func implementsUser(obj interface{}) bool {
+	t := reflect.TypeOf(obj)
+	return t.Implements(reflect.TypeOf((*User)(nil)).Elem())
+}
+
 func embedsRESTController(obj interface{}) bool {
 	return getEmbeddedRESTController(obj) != nil
 }

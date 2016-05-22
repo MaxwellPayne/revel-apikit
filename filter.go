@@ -21,20 +21,22 @@ func CreateRESTControllerInjectionFilter(authFunction AuthenticationFunction) re
 				panic(errors.New("Type Injection: Given Controller does not conform to ModelProvider"))
 			}
 
-			methodValue := controllerValue.MethodByName(GetModelMethodName)
-
-			model := methodValue.Call([]reflect.Value{})[0].Interface().(RESTObject)
-			var _ = model
-
 			restController := getEmbeddedRESTController(c.AppController)
 
+			// attach the type factory to RESTController
+			modelFactoryMethodValue := controllerValue.MethodByName(ModelFactoryFunc)
+			modelFactory := modelFactoryMethodValue.Call([]reflect.Value{})[0].Interface().(func() RESTObject)
+			restController.modelFactory = modelFactory
+
+			// attach the get unique function to RESTController
+			getUniqueMethodValue := controllerValue.MethodByName(GetModelByIDMethodName)
+			getUniqueFunc := getUniqueMethodValue.Call([]reflect.Value{})[0].Interface().(func(id uint64) RESTObject)
+			restController.getUniqueFunc = getUniqueFunc
 
 			if username, pass, ok := c.Request.BasicAuth(); ok {
 				restController.authenticatedUser = authFunction(username, pass)
 			}
-			restController.typeFactory = func() RESTObject {
-				return model
-			}
+			restController.Request = c.Request
 
 			setEmbeddedRESTController(c.AppController, *restController)
 		}

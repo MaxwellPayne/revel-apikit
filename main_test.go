@@ -14,10 +14,16 @@ import (
 	"github.com/revel/revel"
 	"path"
 	"runtime"
+	"reflect"
 )
 
 const (
 	testPort int = 62937
+	testHost string = "http://localhost"
+)
+
+var (
+	localAddress string
 )
 
 func TestMain(m *testing.M) {
@@ -37,11 +43,27 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 	revel.Config = conf
+	revel.LoadMimeConfig()
 
 	revel.RegisterController((*ExampleUserController)(nil),
 		[]*revel.MethodType{
 			&revel.MethodType{
-				Name: "Ok",
+				Name: "Get",
+				Args: []*revel.MethodArg{
+					{"id", reflect.TypeOf((*uint64)(nil))},
+				},
+			},
+			&revel.MethodType{
+				Name: "Post",
+			},
+			&revel.MethodType{
+				Name: "Put",
+			},
+			&revel.MethodType{
+				Name: "Delete",
+				Args: []*revel.MethodArg{
+					{"id", reflect.TypeOf((*uint64)(nil))},
+				},
 			},
 		},
 	)
@@ -49,12 +71,12 @@ func TestMain(m *testing.M) {
 	revel.RegisterController((*NonModelProviderConformingController)(nil),
 		[]*revel.MethodType{
 			&revel.MethodType{
-				Name: "Ok",
+				Name: "Post",
 			},
 		},
 	)
 
-	revel.MainRouter = revel.NewRouter(path.Join(cwd, "conf", "routes"))
+	revel.MainRouter = revel.NewRouter(path.Join(cwd, "conf", "test-routes"))
 	revel.MainRouter.Refresh()
 
 	go Run(testPort)
@@ -113,7 +135,6 @@ func Run(port int) {
 	}
 
 	var network = "tcp"
-	var localAddress string
 
 	// If the port is zero, treat the address as a fully qualified local address.
 	// This address must be prefixed with the network type followed by a colon,
@@ -150,15 +171,8 @@ func Run(port int) {
 		revel.Filters = append([]revel.Filter{revel.WatchFilter}, revel.Filters...)
 	}
 
-	// If desired (or by default), create a watcher for templates and routes.
-	// The watcher calls Refresh() on things on the first request.
-	if revel.MainWatcher != nil && revel.Config.BoolDefault("watch.templates", true) {
-		//////MainWatcher.Listen(MainTemplateLoader, MainTemplateLoader.paths...)
-		revel.MainWatcher.Listen(revel.MainTemplateLoader)
-	}
-
 	// add the type injection filter
-	var modelFilter revel.Filter = CreateRESTControllerInjectionFilter(authenticationFunc)
+	var modelFilter revel.Filter = CreateRESTControllerInjectionFilter(testAuthenticationFunc)
 	filterCount := len(revel.Filters)
 	revel.Filters = append(revel.Filters[:filterCount-1],
 		append([]revel.Filter{modelFilter}, revel.Filters[filterCount-1:]...)...)
@@ -197,14 +211,25 @@ func testingPanicFilter(c *revel.Controller, fc []revel.Filter) {
 	defer func() {
 		if err := recover(); err != nil {
 			//revel.ERROR.Print(err, "\n", string(debug.Stack()))
+			fmt.Println("LOG: panic (recovered) from filters:", err)
 			c.Response.Out.WriteHeader(http.StatusInternalServerError)
 			c.Response.Out.Write([]byte("An unexpected error ocurred"))
+		} else {
+			if _, ok := c.Result.(revel.ErrorResult); ok {
+				c.Result = nil
+			}
 		}
 	}()
 
 	fc[0](c, fc[1:])
 }
 
-func authenticationFunc(username, password string) User {
+func testAuthenticationFunc(username, password string) User {
+	for _, u := range usersDB {
+		// simulate a 'query' through our lame usersDB
+		if u.Username == username && u.Password == password {
+			return u
+		}
+	}
 	return nil
 }
