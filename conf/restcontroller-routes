@@ -11,5 +11,8 @@ DELETE  /user/:id                               ExampleUserController.Delete
 POST    /user                                   ExampleUserController.Post
 PUT     /user                                   ExampleUserController.Put
 
+# this one shouldn't work because it falls outside the RESTController method set
+GET     /userscustomroute                       ExampleUserController.SomeCustomMethod
+
 # NonModelProviderConformingController
 POST    /badmodelprovider                       NonModelProviderConformingController.Post

@@ -26,6 +26,3 @@ _testmain.go
 # IDE files
 .idea/
 *.iml
-
-# tmp directories created by testing
-/app/

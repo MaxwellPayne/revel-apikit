@@ -43,6 +43,10 @@ func (c *ExampleUserController) GetModelByIDFunc() func(id uint64) RESTObject {
 	}
 }
 
+func (c *ExampleUserController) SomeCustomMethod() revel.Result {
+	return c.RenderText("My custom method")
+}
+
 func (u *ExampleUser) CanBeViewedBy(other User) bool {
 	return true
 }
@@ -171,4 +175,10 @@ func TestDeleteExampleUser(t *testing.T) {
 	suite := reveltest.NewTestSuite()
 	suite.Delete(endpoint)
 	suite.AssertStatus(http.StatusUnauthorized)
+}
+
+func TestGetCustomMethod(t *testing.T) {
+	suite := reveltest.NewTestSuite()
+	suite.Get("/userscustomroute")
+	suite.AssertStatus(http.StatusNotFound)
 }
