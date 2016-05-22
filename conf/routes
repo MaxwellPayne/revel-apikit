@@ -1,0 +1,9 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+module:testrunner
+
+
+GET     /user                                   ExampleUserController.Ok
+GET     /badmodelprovider                       NonModelProviderConformingController.Ok
