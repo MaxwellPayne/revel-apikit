@@ -14,7 +14,6 @@ import (
 	"github.com/revel/revel"
 	"path"
 	"runtime"
-	"reflect"
 )
 
 const (
@@ -35,6 +34,8 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
+	revel.BasePath = cwd
+
 	revel.ConfPaths = []string{path.Join(cwd, "conf")}
 	revel.Config = revel.NewEmptyConfig()
 	conf, err := revel.LoadConfig("app.conf")
@@ -45,39 +46,10 @@ func TestMain(m *testing.M) {
 	revel.Config = conf
 	revel.LoadMimeConfig()
 
-	revel.RegisterController((*ExampleUserController)(nil),
-		[]*revel.MethodType{
-			&revel.MethodType{
-				Name: "Get",
-				Args: []*revel.MethodArg{
-					{"id", reflect.TypeOf((*uint64)(nil))},
-				},
-			},
-			&revel.MethodType{
-				Name: "Post",
-			},
-			&revel.MethodType{
-				Name: "Put",
-			},
-			&revel.MethodType{
-				Name: "Delete",
-				Args: []*revel.MethodArg{
-					{"id", reflect.TypeOf((*uint64)(nil))},
-				},
-			},
-		},
-	)
-
-	revel.RegisterController((*NonModelProviderConformingController)(nil),
-		[]*revel.MethodType{
-			&revel.MethodType{
-				Name: "Post",
-			},
-		},
-	)
-
-	revel.MainRouter = revel.NewRouter(path.Join(cwd, "conf", "test-routes"))
-	revel.MainRouter.Refresh()
+	RegisterControllers([]interface{}{
+		(*ExampleUserController)(nil),
+		(*NonModelProviderConformingController)(nil),
+	})
 
 	go Run(testPort)
 	time.Sleep(time.Millisecond * 100)

@@ -6,6 +6,9 @@ import (
 	"net/http"
 	"reflect"
 	"encoding/json"
+	"path"
+	"os"
+	"io/ioutil"
 )
 
 var (
@@ -135,7 +138,7 @@ func (c *RESTController) Delete(id uint64) revel.Result {
 
 func (c *RESTController) modelName() string {
 	instance := c.modelFactory()
-	return reflect.TypeOf(instance).Name()
+	return reflect.TypeOf(instance).Elem().Name()
 }
 
 func (c *RESTController) unmarshalRequestBody(o interface{}, next func() revel.Result) revel.Result {
@@ -145,6 +148,68 @@ func (c *RESTController) unmarshalRequestBody(o interface{}, next func() revel.R
 	}
 	return next()
 }
+
+func RegisterControllers(controllers []interface{}) {
+	for _, c := range controllers {
+		revel.RegisterController(c,
+			[]*revel.MethodType{
+				&revel.MethodType{
+					Name: "Get",
+					Args: []*revel.MethodArg{
+						{"id", reflect.TypeOf((*uint64)(nil))},
+					},
+				},
+				&revel.MethodType{
+					Name: "Post",
+				},
+				&revel.MethodType{
+					Name: "Put",
+				},
+				&revel.MethodType{
+					Name: "Delete",
+					Args: []*revel.MethodArg{
+						{"id", reflect.TypeOf((*uint64)(nil))},
+					},
+				},
+			},
+		)
+	}
+
+	if err := os.MkdirAll(path.Join(revel.BasePath, "app", "tmp"), os.ModeDir|os.ModePerm); err != nil {
+		panic(err)
+	}
+
+	compiledRoutePath := path.Join(revel.BasePath, "app", "tmp", "restcontroller-compiled-routes")
+	f, err := os.OpenFile(compiledRoutePath, os.O_APPEND|os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		panic(err)
+	}
+
+	defer f.Close()
+
+	routes, err := ioutil.ReadFile(path.Join(revel.BasePath, "conf", "routes"))
+	if err != nil {
+		panic(err)
+	}
+
+	if _, err := f.Write(routes); err != nil {
+		panic(err)
+	}
+	f.WriteString("\n")
+
+	restcontrollerRoutes, err := ioutil.ReadFile(path.Join(revel.BasePath, "conf", "restcontroller-routes"))
+	if err != nil {
+		panic(err)
+	}
+
+	if _, err := f.Write(restcontrollerRoutes); err != nil {
+		panic(err)
+	}
+
+	revel.MainRouter = revel.NewRouter(compiledRoutePath)
+	revel.MainRouter.Refresh()
+}
+
 
 func defaultBadRequestMessage() ApiMessage {
 	return ApiMessage{
