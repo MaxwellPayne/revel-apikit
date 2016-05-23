@@ -1,0 +1,7 @@
+# Put all desired RESTController actions here
+
+# UserController
+GET     /users/:id                              UserController.Get
+POST    /users                                  UserController.Post
+PUT     /users                                  UserController.Put
+DELETE  /users/:id                              UserController.Delete
