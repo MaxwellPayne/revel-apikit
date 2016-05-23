@@ -140,6 +140,15 @@ func (c *UserController) GetModelByIDFunc() func(id uint64) apikit.RESTObject {
 }
 ```
 
+Doing this will allow your `UserController` to serve the following Revel routes:
+```
+# UserController
+GET     /user/:id                               UserController.Get
+DELETE  /user/:id                               UserController.Delete
+POST    /user                                   UserController.Post
+PUT     /user                                   UserController.Put
+```
+
 #### Limitations
 - `RESTController` instances cannot have Actions other than those provided by `RESTController`
 - `conf/restcontroller-routes` cannot use catchall `:` Actions
