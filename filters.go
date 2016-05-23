@@ -2,11 +2,10 @@ package apikit
 import (
 	"github.com/revel/revel"
 	"reflect"
-	"fmt"
 	"errors"
+	"runtime/debug"
+	"net/http"
 )
-
-var _ = fmt.Println
 
 type AuthenticationFunction func(username, password string) User
 
@@ -16,8 +15,7 @@ func CreateRESTControllerInjectionFilter(authFunction AuthenticationFunction) re
 			// perform reflection only if this is a RESTController
 			var controllerValue reflect.Value = reflect.ValueOf(c.AppController)
 
-			implementsModelProvider := controllerValue.Type().Implements(reflect.TypeOf((*ModelProvider)(nil)).Elem())
-			if !implementsModelProvider {
+			if !implementsModelProvider(c.AppController) {
 				panic(errors.New("Type Injection: Given Controller does not conform to ModelProvider"))
 			}
 
@@ -43,4 +41,27 @@ func CreateRESTControllerInjectionFilter(authFunction AuthenticationFunction) re
 
 		fc[0](c, fc[1:]) // Execute the next filter stage.
 	}
+}
+
+func APIPanicFilter(c *revel.Controller, fc []revel.Filter) {
+	const defaultErrMsg string = "An unexpected error ocurred"
+	defer func() {
+		if err := recover(); err != nil {
+			if revel.DevMode {
+				revel.ERROR.Print(err, "\n", string(debug.Stack()))
+			}
+
+			c.Result = ApiMessage{
+				StatusCode: http.StatusInternalServerError,
+				Message: revel.Config.StringDefault("apikit.internalservererror", defaultErrMsg),
+			}
+		} else {
+			if c.Response.Status == http.StatusNotFound {
+				// clobber Revel's html template-based NotFound result
+				c.Result = DefaultNotFoundMessage()
+			}
+		}
+	}()
+
+	fc[0](c, fc[1:])
 }

@@ -46,9 +46,16 @@ func TestMain(m *testing.M) {
 	revel.Config = conf
 	revel.LoadMimeConfig()
 
-	RegisterControllers([]interface{}{
+	// register non-RESTController controllers
+	// must come BEFORE RegisterRESTControllers b/c that refreshes the MainRouter
+	revel.RegisterController((*PanicFilterTestController)(nil), []*revel.MethodType{
+		&revel.MethodType{
+			Name: "CausePanic",
+		},
+	})
+
+	RegisterRESTControllers([]ModelProvider{
 		(*ExampleUserController)(nil),
-		(*NonModelProviderConformingController)(nil),
 	})
 
 	go Run(testPort)
@@ -134,7 +141,7 @@ func Run(port int) {
 
 	// Replace revel's PanicFilter with our own
 	revel.Filters = revel.Filters[1:]
-	revel.Filters = append([]revel.Filter{testingPanicFilter}, revel.Filters...)
+	revel.Filters = append([]revel.Filter{APIPanicFilter}, revel.Filters...)
 
 	// The "watch" config variable can turn on and off all watching.
 	// (As a convenient way to control it all together.)
@@ -178,23 +185,6 @@ func runStartupHooks() {
 }
 
 var startupHooks []func()
-
-func testingPanicFilter(c *revel.Controller, fc []revel.Filter) {
-	defer func() {
-		if err := recover(); err != nil {
-			//revel.ERROR.Print(err, "\n", string(debug.Stack()))
-			fmt.Println("LOG: panic (recovered) from filters:", err)
-			c.Response.Out.WriteHeader(http.StatusInternalServerError)
-			c.Response.Out.Write([]byte("An unexpected error ocurred"))
-		} else {
-			if _, ok := c.Result.(revel.ErrorResult); ok {
-				c.Result = nil
-			}
-		}
-	}()
-
-	fc[0](c, fc[1:])
-}
 
 func testAuthenticationFunc(username, password string) User {
 	for _, u := range usersDB {

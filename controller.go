@@ -33,7 +33,7 @@ const (
 
 func (c *RESTController) Get(id uint64) revel.Result {
 	if !c.modelFactory().EnableGET() {
-		return defaultBadRequestMessage()
+		return DefaultBadRequestMessage()
 	}
 	if found := c.getUniqueFunc(id); found == nil {
 		return ApiMessage{
@@ -55,7 +55,7 @@ func (c *RESTController) Get(id uint64) revel.Result {
 func (c *RESTController) Post() revel.Result {
 	instance := c.modelFactory()
 	if !instance.EnablePOST() {
-		return defaultNotFoundMessage()
+		return DefaultNotFoundMessage()
 	}
 	return c.unmarshalRequestBody(&instance, func() revel.Result {
 		// Users should not be subject to modification checks during Post
@@ -81,7 +81,7 @@ func (c *RESTController) Post() revel.Result {
 func (c *RESTController) Put() revel.Result {
 	instance := c.modelFactory()
 	if !instance.EnablePUT() {
-		return defaultNotFoundMessage()
+		return DefaultNotFoundMessage()
 	}
 	return c.unmarshalRequestBody(&instance, func() revel.Result {
 		if !instance.CanBeModifiedBy(c.authenticatedUser) {
@@ -105,7 +105,7 @@ func (c *RESTController) Put() revel.Result {
 
 func (c *RESTController) Delete(id uint64) revel.Result {
 	if !c.modelFactory().EnableDELETE() {
-		return defaultNotFoundMessage()
+		return DefaultNotFoundMessage()
 	}
 	if found := c.getUniqueFunc(id); found == nil {
 		return ApiMessage{
@@ -141,19 +141,19 @@ func (c *RESTController) modelName() string {
 func (c *RESTController) unmarshalRequestBody(o interface{}, next func() revel.Result) revel.Result {
 	err := json.NewDecoder(c.Request.Body).Decode(o)
 	if err != nil {
-		return defaultBadRequestMessage()
+		return DefaultBadRequestMessage()
 	}
 	return next()
 }
 
-func defaultBadRequestMessage() ApiMessage {
+func DefaultBadRequestMessage() ApiMessage {
 	return ApiMessage{
 		StatusCode: http.StatusBadRequest,
 		Message: "Improperly formatted request body",
 	}
 }
 
-func defaultNotFoundMessage() ApiMessage {
+func DefaultNotFoundMessage() ApiMessage {
 	return ApiMessage{
 		StatusCode: http.StatusNotFound,
 		Message: "Not Found",

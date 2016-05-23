@@ -1,1 +1,6 @@
-# Empty routes file to mock a real revel environment
+# File for non-RESTController routes
+
+module:testrunner
+
+# filters_test
+GET     /causepanic                             PanicFilterTestController.CausePanic

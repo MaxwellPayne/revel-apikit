@@ -16,6 +16,11 @@ func implementsUser(obj interface{}) bool {
 	return t.Implements(reflect.TypeOf((*User)(nil)).Elem())
 }
 
+func implementsModelProvider(obj interface{}) bool {
+	var v reflect.Value = reflect.ValueOf(obj)
+	return v.Type().Implements(reflect.TypeOf((*ModelProvider)(nil)).Elem())
+}
+
 func embedsRESTController(obj interface{}) bool {
 	return getEmbeddedRESTController(obj) != nil
 }

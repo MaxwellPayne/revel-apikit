@@ -10,8 +10,8 @@ import (
 	"github.com/robfig/pathtree"
 )
 
-func RegisterControllers(controllers []interface{}) {
-
+// Register the RESTControllers
+func RegisterRESTControllers(controllers []ModelProvider) {
 	revel.MainRouter = revel.NewRouter(path.Join(revel.BasePath, "conf", "routes"))
 	revel.MainRouter.Refresh()
 
