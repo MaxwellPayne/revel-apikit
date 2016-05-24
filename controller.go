@@ -39,8 +39,8 @@ func (c *GenericRESTController) Get(id uint64) revel.Result {
 		}
 	} else {
 		if hooker, ok := c.modelProvider.(GETHooker); ok {
-			if customResult := hooker.PostGETHook(found, c.authenticatedUser); customResult != nil {
-				return customResult
+			if prematureResult := hooker.PostGETHook(found, c.authenticatedUser); prematureResult != nil {
+				return prematureResult
 			}
 		}
 		return jsonResult{
@@ -62,12 +62,22 @@ func (c *GenericRESTController) Post() revel.Result {
 				Message: "Not authorized to post this " + c.modelName(),
 			}
 		}
+		if hooker, ok := c.modelProvider.(POSTHooker); ok {
+			if prematureResult := hooker.PrePOSTHook(instance, c.authenticatedUser); prematureResult != nil {
+				return prematureResult
+			}
+		}
 		if err := instance.Save(); err != nil {
 			return ApiMessage{
 				StatusCode: http.StatusBadRequest,
 				Message: err.Error(),
 			}
 		} else {
+			if hooker, ok := c.modelProvider.(POSTHooker); ok {
+				if prematureResult := hooker.PostPOSTHook(instance, c.authenticatedUser, err); prematureResult != nil {
+					return prematureResult
+				}
+			}
 			return jsonResult{
 				body: instance,
 			}
@@ -87,12 +97,22 @@ func (c *GenericRESTController) Put() revel.Result {
 				Message: "Not authorized to modify this " + c.modelName(),
 			}
 		}
+		if hooker, ok := c.modelProvider.(PUTHooker); ok {
+			if prematureResult := hooker.PrePUTHook(instance, c.authenticatedUser); prematureResult != nil {
+				return prematureResult
+			}
+		}
 		if err := instance.Save(); err != nil {
 			return ApiMessage{
 				StatusCode: http.StatusBadRequest,
 				Message: err.Error(),
 			}
 		} else {
+			if hooker, ok := c.modelProvider.(PUTHooker); ok {
+				if prematureResult := hooker.PostPUTHook(instance, c.authenticatedUser, err); prematureResult != nil {
+					return prematureResult
+				}
+			}
 			return jsonResult{
 				body: instance,
 			}

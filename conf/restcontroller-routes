@@ -12,7 +12,10 @@ POST    /user                                   ExampleUserController.Post
 PUT     /user                                   ExampleUserController.Put
 
 # FishHookerController
+GET     /fish/:id                               FishHookerController.Get
 DELETE  /fish/:id                               FishHookerController.Delete
+POST    /fish                                   FishHookerController.Post
+PUT     /fish                                   FishHookerController.Put
 
 # this one shouldn't work because it falls outside the RESTController method set
 GET     /userscustomroute                       ExampleUserController.SomeCustomMethod
