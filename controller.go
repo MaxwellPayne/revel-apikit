@@ -8,34 +8,26 @@ import (
 	"encoding/json"
 )
 
-var (
-	_ = fmt.Println
-)
-
-type RESTController struct {
+type GenericRESTController struct {
 	authenticatedUser User
 	Request           *revel.Request
-	modelFactory      func() RESTObject
-	getUniqueFunc     func(id uint64) RESTObject
-}
-
-type ModelProvider interface {
-	ModelFactoryFunc() func() RESTObject
-	GetModelByIDFunc() func(id uint64) RESTObject
+	modelProvider     RESTController
 }
 
 const (
-	ModelFactoryFunc string = "ModelFactoryFunc"
-	GetModelByIDMethodName string = "GetModelByIDFunc"
-	RESTControllerName string = "RESTController"
-	RESTControllertypeFactoryFieldName string = "typeFactory"
+	RESTControllerName string = "GenericRESTController"
 )
 
-func (c *RESTController) Get(id uint64) revel.Result {
-	if !c.modelFactory().EnableGET() {
+func (c *GenericRESTController) Get(id uint64) revel.Result {
+	if !c.modelProvider.EnableGET() {
 		return DefaultBadRequestMessage()
 	}
-	if found := c.getUniqueFunc(id); found == nil {
+	if hooker, ok := c.modelProvider.(GETHooker); ok {
+		if prematureResult := hooker.PreGETHook(id, c.authenticatedUser); prematureResult != nil {
+			return prematureResult
+		}
+	}
+	if found := c.modelProvider.GetModelByID(id); found == nil {
 		return ApiMessage{
 			StatusCode: http.StatusNotFound,
 			Message: fmt.Sprint(c.modelName(), " with ID ", id, " not found"),
@@ -46,15 +38,20 @@ func (c *RESTController) Get(id uint64) revel.Result {
 			Message: fmt.Sprint("Unauthorized to view ", c.modelName(), " with ID ", id),
 		}
 	} else {
+		if hooker, ok := c.modelProvider.(GETHooker); ok {
+			if customResult := hooker.PostGETHook(found, c.authenticatedUser); customResult != nil {
+				return customResult
+			}
+		}
 		return jsonResult{
 			body: found,
 		}
 	}
 }
 
-func (c *RESTController) Post() revel.Result {
-	instance := c.modelFactory()
-	if !instance.EnablePOST() {
+func (c *GenericRESTController) Post() revel.Result {
+	instance := c.modelProvider.ModelFactory()
+	if !c.modelProvider.EnablePOST() {
 		return DefaultNotFoundMessage()
 	}
 	return c.unmarshalRequestBody(&instance, func() revel.Result {
@@ -78,9 +75,9 @@ func (c *RESTController) Post() revel.Result {
 	})
 }
 
-func (c *RESTController) Put() revel.Result {
-	instance := c.modelFactory()
-	if !instance.EnablePUT() {
+func (c *GenericRESTController) Put() revel.Result {
+	instance := c.modelProvider.ModelFactory()
+	if !c.modelProvider.EnablePUT() {
 		return DefaultNotFoundMessage()
 	}
 	return c.unmarshalRequestBody(&instance, func() revel.Result {
@@ -103,11 +100,11 @@ func (c *RESTController) Put() revel.Result {
 	})
 }
 
-func (c *RESTController) Delete(id uint64) revel.Result {
-	if !c.modelFactory().EnableDELETE() {
+func (c *GenericRESTController) Delete(id uint64) revel.Result {
+	if !c.modelProvider.EnableDELETE() {
 		return DefaultNotFoundMessage()
 	}
-	if found := c.getUniqueFunc(id); found == nil {
+	if found := c.modelProvider.GetModelByID(id); found == nil {
 		return ApiMessage{
 			StatusCode: http.StatusNotFound,
 			Message: fmt.Sprint(c.modelName(), " with ID ", id, " not found"),
@@ -119,12 +116,22 @@ func (c *RESTController) Delete(id uint64) revel.Result {
 				Message: "Not authorized to delete this " + c.modelName(),
 			}
 		}
+		if hooker, ok := c.modelProvider.(DELETEHooker); ok {
+			if prematureResult := hooker.PreDELETEHook(found, c.authenticatedUser); prematureResult != nil {
+				return prematureResult
+			}
+		}
 		if err := found.Delete(); err != nil {
 			return ApiMessage{
 				StatusCode: http.StatusBadRequest,
 				Message: err.Error(),
 			}
 		} else {
+			if hooker, ok := c.modelProvider.(DELETEHooker); ok {
+				if prematureResult := hooker.PostDELETEHook(found, c.authenticatedUser, err); prematureResult != nil {
+					return prematureResult
+				}
+			}
 			return ApiMessage{
 				StatusCode: http.StatusOK,
 				Message: "Success",
@@ -133,12 +140,12 @@ func (c *RESTController) Delete(id uint64) revel.Result {
 	}
 }
 
-func (c *RESTController) modelName() string {
-	instance := c.modelFactory()
+func (c *GenericRESTController) modelName() string {
+	instance := c.modelProvider.ModelFactory()
 	return reflect.TypeOf(instance).Elem().Name()
 }
 
-func (c *RESTController) unmarshalRequestBody(o interface{}, next func() revel.Result) revel.Result {
+func (c *GenericRESTController) unmarshalRequestBody(o interface{}, next func() revel.Result) revel.Result {
 	err := json.NewDecoder(c.Request.Body).Decode(o)
 	if err != nil {
 		return DefaultBadRequestMessage()

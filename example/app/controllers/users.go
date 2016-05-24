@@ -9,22 +9,34 @@ import (
 // Controller for Users
 type UserController struct {
 	*revel.Controller
-	apikit.RESTController
+	apikit.GenericRESTController
 }
 
 // Implementation of ModelProvider interface
-func (c *UserController) ModelFactoryFunc() func() apikit.RESTObject {
-	return func() apikit.RESTObject {
-		return &models.User{}
+func (c *UserController) ModelFactory() apikit.RESTObject {
+	return &models.User{}
+}
+
+func (c *UserController) GetModelByID(id uint64) apikit.RESTObject {
+	if u := models.GetUserByID(id); u == nil {
+		return nil
+	} else {
+		return u
 	}
 }
 
-func (c *UserController) GetModelByIDFunc() func(id uint64) apikit.RESTObject {
-	return func(id uint64) apikit.RESTObject {
-		if u := models.GetUserByID(id); u == nil {
-			return nil
-		} else {
-			return u
-		}
-	}
+func (c *UserController) EnableGET() bool {
+	return true
+}
+
+func (c *UserController) EnablePOST() bool {
+	return true
+}
+
+func (c *UserController) EnablePUT() bool {
+	return true
+}
+
+func (c *UserController) EnableDELETE() bool {
+	return true
 }

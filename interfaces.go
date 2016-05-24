@@ -4,6 +4,7 @@ import (
 	"github.com/revel/revel"
 )
 
+// A server-side data model that can be served by RESTControllers
 type RESTObject interface {
 	CanBeViewedBy(user User) bool
 	CanBeModifiedBy(user User) bool
@@ -12,6 +13,12 @@ type RESTObject interface {
 
 	Delete() error
 	Save() error
+}
+
+// A Controller that concerns itself with managing one type of RESTObject
+type RESTController interface {
+	ModelFactory() RESTObject
+	GetModelByID(id uint64) RESTObject
 
 	EnableGET() bool
 	EnablePOST() bool
@@ -19,7 +26,9 @@ type RESTObject interface {
 	EnableDELETE() bool
 }
 
+// A RESTObject that can be authenticated by RESTControllers
 type User interface {
 	RESTObject
 	UserID() uint64
 }
+

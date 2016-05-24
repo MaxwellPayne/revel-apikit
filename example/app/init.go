@@ -34,9 +34,8 @@ func init() {
 		revel.ActionInvoker,
 	}
 
-
 	// Register RESTControllers OnAppStart
-	controllers := []apikit.ModelProvider{
+	controllers := []apikit.RESTController{
 		(*controllers.UserController)(nil),
 	}
 	revel.OnAppStart(func() {

@@ -11,7 +11,7 @@ import (
 )
 
 // Register the RESTControllers
-func RegisterRESTControllers(controllers []ModelProvider) {
+func RegisterRESTControllers(controllers []RESTController) {
 	revel.MainRouter = revel.NewRouter(path.Join(revel.BasePath, "conf", "routes"))
 	revel.MainRouter.Refresh()
 

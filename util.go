@@ -18,14 +18,14 @@ func implementsUser(obj interface{}) bool {
 
 func implementsModelProvider(obj interface{}) bool {
 	var v reflect.Value = reflect.ValueOf(obj)
-	return v.Type().Implements(reflect.TypeOf((*ModelProvider)(nil)).Elem())
+	return v.Type().Implements(reflect.TypeOf((*RESTController)(nil)).Elem())
 }
 
 func embedsRESTController(obj interface{}) bool {
 	return getEmbeddedRESTController(obj) != nil
 }
 
-func getEmbeddedRESTController(obj interface{}) *RESTController {
+func getEmbeddedRESTController(obj interface{}) *GenericRESTController {
 	var theStruct reflect.Value
 
 	t := reflect.TypeOf(obj)
@@ -45,14 +45,14 @@ func getEmbeddedRESTController(obj interface{}) *RESTController {
 	for fieldIdx := 0; fieldIdx < theStruct.NumField(); fieldIdx ++ {
 		field := theStruct.Type().Field(fieldIdx)
 		if field.Name == RESTControllerName && field.Anonymous {
-			ctrl := theStruct.FieldByIndex(field.Index).Interface().(RESTController)
+			ctrl := theStruct.FieldByIndex(field.Index).Interface().(GenericRESTController)
 			return &ctrl
 		}
 	}
 	return nil
 }
 
-func setEmbeddedRESTController(obj interface{}, ctrl RESTController) (ok bool) {
+func setEmbeddedRESTController(obj interface{}, ctrl GenericRESTController) (ok bool) {
 	var theStruct reflect.Value
 
 	t := reflect.TypeOf(obj)

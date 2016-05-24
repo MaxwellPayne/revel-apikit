@@ -20,33 +20,6 @@ type ExampleUser struct {
 	Password      string    `json:"-"`
 }
 
-// Controller for ExampleUsers
-type ExampleUserController struct {
-	*revel.Controller
-	RESTController
-}
-
-func (c *ExampleUserController) ModelFactoryFunc() func() RESTObject {
-	return func() RESTObject {
-		return &ExampleUser{}
-	}
-}
-
-func (c *ExampleUserController) GetModelByIDFunc() func(id uint64) RESTObject {
-	return func(id uint64) RESTObject {
-		for _, u := range usersDB {
-			if u.ID == id {
-				return u
-			}
-		}
-		return nil
-	}
-}
-
-func (c *ExampleUserController) SomeCustomMethod() revel.Result {
-	return c.RenderText("My custom method")
-}
-
 func (u *ExampleUser) CanBeViewedBy(other User) bool {
 	return true
 }
@@ -63,28 +36,47 @@ func (u *ExampleUser) UserID() uint64 {
 	return u.ID
 }
 
-func (u *ExampleUser) EnableGET() bool {
-	return true
-}
-
-func (u *ExampleUser) EnablePOST() bool {
-	return true
-}
-
-func (u *ExampleUser) EnablePUT() bool {
-	return true
-}
-
-func (u *ExampleUser) EnableDELETE() bool {
-	return true
-}
-
 func (u *ExampleUser) Delete() error {
 	return nil
 }
 
 func (u *ExampleUser) Save() error {
 	return nil
+}
+
+// Controller for ExampleUsers
+type ExampleUserController struct {
+	*revel.Controller
+	GenericRESTController
+}
+
+func (c *ExampleUserController) ModelFactory() RESTObject {
+	return &ExampleUser{}
+}
+
+func (c *ExampleUserController) GetModelByID(id uint64) RESTObject {
+	for _, u := range usersDB {
+		if u.ID == id {
+			return u
+		}
+	}
+	return nil
+}
+
+func (c *ExampleUserController) EnableGET() bool {
+	return true
+}
+
+func (c *ExampleUserController) EnablePOST() bool {
+	return true
+}
+
+func (c *ExampleUserController) EnablePUT() bool {
+	return true
+}
+
+func (c *ExampleUserController) EnableDELETE() bool {
+	return true
 }
 
 var usersDB []*ExampleUser = []*ExampleUser{

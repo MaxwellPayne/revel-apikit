@@ -44,22 +44,6 @@ func (u *User) UserID() uint64 {
 	return u.ID
 }
 
-func (u *User) EnableGET() bool {
-	return true
-}
-
-func (u *User) EnablePOST() bool {
-	return true
-}
-
-func (u *User) EnablePUT() bool {
-	return true
-}
-
-func (u *User) EnableDELETE() bool {
-	return true
-}
-
 func (u *User) Delete() error {
 	// not actually deleting users in this example
 	return nil

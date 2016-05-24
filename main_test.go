@@ -54,8 +54,9 @@ func TestMain(m *testing.M) {
 		},
 	})
 
-	RegisterRESTControllers([]ModelProvider{
+	RegisterRESTControllers([]RESTController{
 		(*ExampleUserController)(nil),
+		(*FishHookerController)(nil),
 	})
 
 	go Run(testPort)
