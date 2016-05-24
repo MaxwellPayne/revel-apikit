@@ -113,30 +113,27 @@ The best way to solve this problem would be to create a generic struct,
 but since Go [does not currently support generics](https://golang.org/doc/faq#generics),
 this package tries to emulate a generic class using interfaces. 
 
-With this package, you can gain all of the above functionality by embeding a `RESTController`
-within a Revel controller that implements the `ModelProvider` interface. 
-The `ModelProvider` interface serves as a workaround for Go's lack of generics. 
+With this package, you can gain all of the above functionality by embeding a `GenericRESTController`
+within a Revel controller that implements the `RESTController` interface. 
+The `RESTController` interface serves as a workaround for Go's lack of generics. 
 Using it gives you all of the above functionality with only the following code:
 ```Go
 type UserController struct {
   *revel.Controller
-  apikit.RESTController
+  apikit.GenericRESTController
 }
 
-func (c *UserController) ModelFactoryFunc() func() apikit.RESTObject {
-	return func() apikit.RESTObject {
-		return &User{}
-	}
+func (c *UserController) ModelFactory() RESTObject {
+	return &User{}
 }
 
-func (c *UserController) GetModelByIDFunc() func(id uint64) apikit.RESTObject {
-	return func(id uint64) apikit.RESTObject {
-		if u := GetUserByID(id); u == nil {
-			return nil
-		} else {
+func (c *UserController) GetModelByID(id uint64) RESTObject {
+	for _, u := range usersDB {
+		if u.ID == id {
 			return u
 		}
 	}
+	return nil
 }
 ```
 
@@ -150,7 +147,7 @@ DELETE  /users/:id                              UserController.Delete
 ```
 
 #### Limitations
-- `RESTController` instances cannot have Actions other than those provided by `RESTController`
+- `RESTController` instances cannot have Actions other than those provided by `GenericRESTController`
 - `conf/restcontroller-routes` cannot use catchall `:` Actions
 - `conf/restcontroller-routes` cannot use wildcard `*` paths
 
