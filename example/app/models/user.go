@@ -30,7 +30,7 @@ func (u *User) CanBeViewedBy(other apikit.User) bool {
 }
 
 func (u *User) CanBeModifiedBy(other apikit.User) bool {
-	return other != nil && u.UserID() == other.UserID()
+	return other != nil && u.UserID() == other.UniqueID()
 }
 
 func (u *User) Validate(v *revel.Validation) {
@@ -42,6 +42,10 @@ func (u *User) Validate(v *revel.Validation) {
 
 func (u *User) UserID() uint64 {
 	return u.ID
+}
+
+func (u *User) HasAdminPrivileges() bool {
+	return false
 }
 
 func (u *User) Delete() error {

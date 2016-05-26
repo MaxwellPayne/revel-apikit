@@ -6,6 +6,8 @@ import (
 
 // A server-side data model that can be served by RESTControllers
 type RESTObject interface {
+	UniqueID() uint64
+
 	CanBeViewedBy(user User) bool
 	CanBeModifiedBy(user User) bool
 
@@ -29,6 +31,6 @@ type RESTController interface {
 // A RESTObject that can be authenticated by RESTControllers
 type User interface {
 	RESTObject
-	UserID() uint64
+	HasAdminPrivileges() bool
 }
 

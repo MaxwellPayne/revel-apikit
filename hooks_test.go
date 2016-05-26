@@ -30,6 +30,10 @@ func (fish *Fish) CanBeModifiedBy(user User) bool {
 	return true
 }
 
+func (fish *Fish) UniqueID() uint64 {
+	return fish.ID
+}
+
 func (fish *Fish) Validate(v *revel.Validation) {
 	v.Min(fish.FinCount, 2).Message("Fish must have at least 2 fins")
 }
@@ -320,7 +324,7 @@ func TestPostPUTHook(t *testing.T) {
 	fish := pond[0]
 	fish.FinCount = 1
 	body, _ := json.Marshal(&fish)
-	suite.Put(endpoint, "application/json", bytes.NewReader(body))
+	suite.Post(endpoint, "application/json", bytes.NewReader(body))
 	suite.AssertStatus(http.StatusBadRequest)
 
 	wg := sync.WaitGroup{}
@@ -338,7 +342,7 @@ func TestPostPUTHook(t *testing.T) {
 
 	fish.FinCount = 2
 	body, _ = json.Marshal(&fish)
-	suite.Put(endpoint, "application/json", bytes.NewReader(body))
+	suite.Post(endpoint, "application/json", bytes.NewReader(body))
 	wg.Wait()
 	suite.AssertOk()
 }

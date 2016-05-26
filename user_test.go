@@ -18,6 +18,7 @@ type ExampleUser struct {
 	Username      string    `json:"username"`
 	FavoriteColor string    `json:"favorite_color"`
 	Password      string    `json:"-"`
+	IsAdmin       bool      `json:"is_admin"`
 }
 
 func (u *ExampleUser) CanBeViewedBy(other User) bool {
@@ -25,15 +26,20 @@ func (u *ExampleUser) CanBeViewedBy(other User) bool {
 }
 
 func (u *ExampleUser) CanBeModifiedBy(other User) bool {
-	return other != nil && u.UserID() == other.UserID()
+	return other != nil &&
+		(u.UniqueID() == other.UniqueID() || other.HasAdminPrivileges())
 }
 
 func (u *ExampleUser) Validate(v *revel.Validation) {
 
 }
 
-func (u *ExampleUser) UserID() uint64 {
+func (u *ExampleUser) UniqueID() uint64 {
 	return u.ID
+}
+
+func (u *ExampleUser) HasAdminPrivileges() bool {
+	return u.IsAdmin
 }
 
 func (u *ExampleUser) Delete() error {
@@ -92,6 +98,13 @@ var usersDB []*ExampleUser = []*ExampleUser{
 		FavoriteColor: "Blue",
 		Password: "orange",
 	},
+	&ExampleUser{
+		ID: 3,
+		Username: "Mr. Admin",
+		FavoriteColor: "blood red",
+		Password: "i am the god of the database",
+		IsAdmin: true,
+	},
 }
 
 func TestGetExampleUser(t *testing.T) {
@@ -112,11 +125,16 @@ func TestGetExampleUser(t *testing.T) {
 }
 
 func TestPostExampleUser(t *testing.T) {
+	endpoint := "/user"
+	postUrl := "http://" + net.JoinHostPort("localhost", strconv.Itoa(testPort)) + endpoint
 	mockUser := usersDB[0]
+	adminUser := usersDB[2]
 
 	newUserData, _ := json.Marshal(mockUser)
 	suite := reveltest.NewTestSuite()
-	suite.Post("/user", "application/json", bytes.NewReader(newUserData))
+	req := suite.PostCustom(postUrl, "application/json", bytes.NewReader(newUserData))
+	req.SetBasicAuth(adminUser.Username, adminUser.Password)
+	req.MakeRequest()
 	suite.AssertOk()
 
 	u := ExampleUser{}
@@ -146,7 +164,7 @@ func TestPutExampleUser(t *testing.T) {
 	req.MakeRequest()
 	suite.AssertStatus(http.StatusUnauthorized)
 
-	// should succeed with authentication
+	// should succeed with my authentication
 	req = suite.PutCustom(putUrl, "application/json", bytes.NewReader(modifiedUserData))
 	req.SetBasicAuth(me.Username, me.Password)
 	req.MakeRequest()
@@ -157,6 +175,20 @@ func TestPutExampleUser(t *testing.T) {
 	suite.Assert(err == nil)
 	suite.Assert(me.ID == updatedUser.ID)
 	suite.Assert(me.FavoriteColor == updatedUser.FavoriteColor)
+
+	// should succeed when an admin does it
+	admin := usersDB[2]
+	updatedUser.FavoriteColor = "maroon"
+	updatedUserData, _ := json.Marshal(&updatedUser)
+	req = suite.PutCustom(putUrl, "application/json", bytes.NewReader(updatedUserData))
+	req.SetBasicAuth(admin.Username, admin.Password)
+	req.MakeRequest()
+
+	suite.AssertOk()
+	adminUpdatedUser := ExampleUser{}
+	err = json.Unmarshal(suite.ResponseBody, &adminUpdatedUser)
+	suite.Assert(err == nil)
+	suite.AssertEqual(updatedUser.FavoriteColor, adminUpdatedUser.FavoriteColor)
 }
 
 func TestDeleteExampleUser(t *testing.T) {

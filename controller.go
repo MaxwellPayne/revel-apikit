@@ -43,8 +43,8 @@ func (c *GenericRESTController) Get(id uint64) revel.Result {
 				return prematureResult
 			}
 		}
-		return jsonResult{
-			body: found,
+		return HookJsonResult{
+			Body: found,
 		}
 	}
 }
@@ -55,16 +55,15 @@ func (c *GenericRESTController) Post() revel.Result {
 		return DefaultNotFoundMessage()
 	}
 	return c.unmarshalRequestBody(&instance, func() revel.Result {
-		// Users should not be subject to modification checks during Post
-		if (!instance.CanBeModifiedBy(c.authenticatedUser)) && (!implementsUser(instance)) {
-			return ApiMessage{
-				StatusCode: http.StatusUnauthorized,
-				Message: "Not authorized to post this " + c.modelName(),
-			}
-		}
 		if hooker, ok := c.modelProvider.(POSTHooker); ok {
 			if prematureResult := hooker.PrePOSTHook(instance, c.authenticatedUser); prematureResult != nil {
 				return prematureResult
+			}
+		}
+		if !instance.CanBeModifiedBy(c.authenticatedUser) {
+			return ApiMessage{
+				StatusCode: http.StatusUnauthorized,
+				Message: "Not authorized to post this " + c.modelName(),
 			}
 		}
 		if err := instance.Save(); err != nil {
@@ -78,8 +77,8 @@ func (c *GenericRESTController) Post() revel.Result {
 					return prematureResult
 				}
 			}
-			return jsonResult{
-				body: instance,
+			return HookJsonResult{
+				Body: instance,
 			}
 		}
 	})
@@ -91,15 +90,22 @@ func (c *GenericRESTController) Put() revel.Result {
 		return DefaultNotFoundMessage()
 	}
 	return c.unmarshalRequestBody(&instance, func() revel.Result {
+		if hooker, ok := c.modelProvider.(PUTHooker); ok {
+			if prematureResult := hooker.PrePUTHook(instance, c.authenticatedUser); prematureResult != nil {
+				return prematureResult
+			}
+		}
+		// ensure that this is a pre-existing record
+		if preExisting := c.modelProvider.GetModelByID(instance.UniqueID()); preExisting == nil {
+			return ApiMessage{
+				StatusCode: http.StatusBadRequest,
+				Message: fmt.Sprint(c.modelName(), " with ID ", instance.UniqueID(), " does not exist"),
+			}
+		}
 		if !instance.CanBeModifiedBy(c.authenticatedUser) {
 			return ApiMessage{
 				StatusCode: http.StatusUnauthorized,
 				Message: "Not authorized to modify this " + c.modelName(),
-			}
-		}
-		if hooker, ok := c.modelProvider.(PUTHooker); ok {
-			if prematureResult := hooker.PrePUTHook(instance, c.authenticatedUser); prematureResult != nil {
-				return prematureResult
 			}
 		}
 		if err := instance.Save(); err != nil {
@@ -113,8 +119,8 @@ func (c *GenericRESTController) Put() revel.Result {
 					return prematureResult
 				}
 			}
-			return jsonResult{
-				body: instance,
+			return HookJsonResult{
+				Body: instance,
 			}
 		}
 	})
@@ -130,15 +136,15 @@ func (c *GenericRESTController) Delete(id uint64) revel.Result {
 			Message: fmt.Sprint(c.modelName(), " with ID ", id, " not found"),
 		}
 	} else {
+		if hooker, ok := c.modelProvider.(DELETEHooker); ok {
+			if prematureResult := hooker.PreDELETEHook(found, c.authenticatedUser); prematureResult != nil {
+				return prematureResult
+			}
+		}
 		if !found.CanBeModifiedBy(c.authenticatedUser) {
 			return ApiMessage{
 				StatusCode: http.StatusUnauthorized,
 				Message: "Not authorized to delete this " + c.modelName(),
-			}
-		}
-		if hooker, ok := c.modelProvider.(DELETEHooker); ok {
-			if prematureResult := hooker.PreDELETEHook(found, c.authenticatedUser); prematureResult != nil {
-				return prematureResult
 			}
 		}
 		if err := found.Delete(); err != nil {
