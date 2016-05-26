@@ -60,7 +60,7 @@ func (c *GenericRESTController) Post() revel.Result {
 				return prematureResult
 			}
 		}
-		if !instance.CanBeModifiedBy(c.authenticatedUser) {
+		if !instance.CanBeSavedBy(c.authenticatedUser) {
 			return ApiMessage{
 				StatusCode: http.StatusUnauthorized,
 				Message: "Not authorized to post this " + c.modelName(),
@@ -90,19 +90,21 @@ func (c *GenericRESTController) Put() revel.Result {
 		return DefaultNotFoundMessage()
 	}
 	return c.unmarshalRequestBody(&instance, func() revel.Result {
+		// ensure that this is a pre-existing record
+		preExisting := c.modelProvider.GetModelByID(instance.UniqueID())
 		if hooker, ok := c.modelProvider.(PUTHooker); ok {
-			if prematureResult := hooker.PrePUTHook(instance, c.authenticatedUser); prematureResult != nil {
+			if prematureResult := hooker.PrePUTHook(instance, preExisting, c.authenticatedUser); prematureResult != nil {
 				return prematureResult
 			}
 		}
-		// ensure that this is a pre-existing record
-		if preExisting := c.modelProvider.GetModelByID(instance.UniqueID()); preExisting == nil {
+
+		if preExisting == nil {
 			return ApiMessage{
 				StatusCode: http.StatusBadRequest,
 				Message: fmt.Sprint(c.modelName(), " with ID ", instance.UniqueID(), " does not exist"),
 			}
 		}
-		if !instance.CanBeModifiedBy(c.authenticatedUser) {
+		if !instance.CanBeSavedBy(c.authenticatedUser) {
 			return ApiMessage{
 				StatusCode: http.StatusUnauthorized,
 				Message: "Not authorized to modify this " + c.modelName(),
@@ -115,7 +117,7 @@ func (c *GenericRESTController) Put() revel.Result {
 			}
 		} else {
 			if hooker, ok := c.modelProvider.(PUTHooker); ok {
-				if prematureResult := hooker.PostPUTHook(instance, c.authenticatedUser, err); prematureResult != nil {
+				if prematureResult := hooker.PostPUTHook(instance, preExisting, c.authenticatedUser, err); prematureResult != nil {
 					return prematureResult
 				}
 			}
@@ -141,7 +143,7 @@ func (c *GenericRESTController) Delete(id uint64) revel.Result {
 				return prematureResult
 			}
 		}
-		if !found.CanBeModifiedBy(c.authenticatedUser) {
+		if !found.CanBeSavedBy(c.authenticatedUser) {
 			return ApiMessage{
 				StatusCode: http.StatusUnauthorized,
 				Message: "Not authorized to delete this " + c.modelName(),

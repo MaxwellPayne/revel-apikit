@@ -29,8 +29,12 @@ func (u *User) CanBeViewedBy(other apikit.User) bool {
 	return true
 }
 
-func (u *User) CanBeModifiedBy(other apikit.User) bool {
-	return other != nil && u.UserID() == other.UniqueID()
+func (u *User) CanBeSavedBy(other apikit.User) bool {
+	return other != nil && u.UniqueID() == other.UniqueID()
+}
+
+func (u *User) IsNewRecord() bool {
+	return u.ID == 0
 }
 
 func (u *User) Validate(v *revel.Validation) {
@@ -40,7 +44,7 @@ func (u *User) Validate(v *revel.Validation) {
 	v.MinSize(u.Username, 1).Message("Username cannot be blank")
 }
 
-func (u *User) UserID() uint64 {
+func (u *User) UniqueID() uint64 {
 	return u.ID
 }
 

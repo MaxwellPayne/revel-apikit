@@ -9,7 +9,7 @@ type RESTObject interface {
 	UniqueID() uint64
 
 	CanBeViewedBy(user User) bool
-	CanBeModifiedBy(user User) bool
+	CanBeSavedBy(user User) bool
 
 	Validate(v *revel.Validation)
 

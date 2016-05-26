@@ -26,7 +26,7 @@ func (fish *Fish) CanBeViewedBy(user User) bool {
 	return true
 }
 
-func (fish *Fish) CanBeModifiedBy(user User) bool {
+func (fish *Fish) CanBeSavedBy(user User) bool {
 	return true
 }
 
@@ -141,14 +141,14 @@ func (c *FishHookerController) PostPOSTHook(model RESTObject, authUser User, err
 }
 
 // PUTHooker interface implementation
-func (c *FishHookerController) PrePUTHook(model RESTObject, authUser User) revel.Result {
+func (c *FishHookerController) PrePUTHook(newInstance, existingInstance RESTObject, authUser User) revel.Result {
 	go func() {
 		prePUTHookerChan <- true
 	}()
 	return nil
 }
 
-func (c *FishHookerController) PostPUTHook(model RESTObject, authUser User, err error) revel.Result {
+func (c *FishHookerController) PostPUTHook(newInstance, existingInstance RESTObject, authUser User, err error) revel.Result {
 	go func() {
 		postPUTHookerChan <- true
 	}()

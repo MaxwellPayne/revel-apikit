@@ -19,8 +19,8 @@ type POSTHooker interface {
 
 type PUTHooker interface {
 	RESTController
-	PrePUTHook(model RESTObject, authUser User) revel.Result
-	PostPUTHook(model RESTObject, authUser User, err error) revel.Result
+	PrePUTHook(newInstance, existingInstance RESTObject, authUser User) revel.Result
+	PostPUTHook(newInstance, existingInstance RESTObject, authUser User, err error) revel.Result
 }
 
 type DELETEHooker interface {

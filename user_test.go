@@ -25,7 +25,7 @@ func (u *ExampleUser) CanBeViewedBy(other User) bool {
 	return true
 }
 
-func (u *ExampleUser) CanBeModifiedBy(other User) bool {
+func (u *ExampleUser) CanBeSavedBy(other User) bool {
 	return other != nil &&
 		(u.UniqueID() == other.UniqueID() || other.HasAdminPrivileges())
 }
