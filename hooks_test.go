@@ -26,7 +26,15 @@ func (fish *Fish) CanBeViewedBy(user User) bool {
 	return true
 }
 
-func (fish *Fish) CanBeSavedBy(user User) bool {
+func (fish *Fish) CanBeCreatedBy(user User) bool {
+	return true
+}
+
+func (fish *Fish) CanBeDeletedBy(user User) bool {
+	return true
+}
+
+func (fish *Fish) CanBeModifiedBy(user User) bool {
 	return true
 }
 

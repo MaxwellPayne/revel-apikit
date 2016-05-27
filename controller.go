@@ -60,7 +60,7 @@ func (c *GenericRESTController) Post() revel.Result {
 				return prematureResult
 			}
 		}
-		if !instance.CanBeSavedBy(c.authenticatedUser) {
+		if !instance.CanBeCreatedBy(c.authenticatedUser) {
 			return ApiMessage{
 				StatusCode: http.StatusUnauthorized,
 				Message: "Not authorized to post this " + c.modelName(),
@@ -104,7 +104,7 @@ func (c *GenericRESTController) Put() revel.Result {
 				Message: fmt.Sprint(c.modelName(), " with ID ", instance.UniqueID(), " does not exist"),
 			}
 		}
-		if !instance.CanBeSavedBy(c.authenticatedUser) {
+		if !instance.CanBeModifiedBy(c.authenticatedUser) {
 			return ApiMessage{
 				StatusCode: http.StatusUnauthorized,
 				Message: "Not authorized to modify this " + c.modelName(),
@@ -143,7 +143,7 @@ func (c *GenericRESTController) Delete(id uint64) revel.Result {
 				return prematureResult
 			}
 		}
-		if !found.CanBeSavedBy(c.authenticatedUser) {
+		if !found.CanBeDeletedBy(c.authenticatedUser) {
 			return ApiMessage{
 				StatusCode: http.StatusUnauthorized,
 				Message: "Not authorized to delete this " + c.modelName(),

@@ -25,9 +25,17 @@ func (u *ExampleUser) CanBeViewedBy(other User) bool {
 	return true
 }
 
-func (u *ExampleUser) CanBeSavedBy(other User) bool {
+func (u *ExampleUser) CanBeCreatedBy(other User) bool {
+	return u.CanBeModifiedBy(other)
+}
+
+func (u *ExampleUser) CanBeModifiedBy(other User) bool {
 	return other != nil &&
 		(u.UniqueID() == other.UniqueID() || other.HasAdminPrivileges())
+}
+
+func (u *ExampleUser) CanBeDeletedBy(other User) bool {
+	return u.CanBeModifiedBy(other)
 }
 
 func (u *ExampleUser) Validate(v *revel.Validation) {

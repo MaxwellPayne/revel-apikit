@@ -29,8 +29,16 @@ func (u *User) CanBeViewedBy(other apikit.User) bool {
 	return true
 }
 
-func (u *User) CanBeSavedBy(other apikit.User) bool {
+func (u *User) CanBeCreatedBy(other apikit.User) bool {
+	return u.CanBeModifiedBy(other)
+}
+
+func (u *User) CanBeModifiedBy(other apikit.User) bool {
 	return other != nil && u.UniqueID() == other.UniqueID()
+}
+
+func (u *User) CanBeDeletedBy(other apikit.User) bool {
+	return u.CanBeModifiedBy(other)
 }
 
 func (u *User) IsNewRecord() bool {
