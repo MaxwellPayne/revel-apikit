@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net"
 	"strconv"
+	"time"
+	"errors"
 )
 
 var _ = fmt.Println
@@ -16,6 +18,7 @@ var _ = fmt.Println
 type ExampleUser struct {
 	ID            uint64    `json:"id"`
 	Username      string    `json:"username"`
+	DateCreated   time.Time
 	FavoriteColor string    `json:"favorite_color"`
 	Password      string    `json:"-"`
 	IsAdmin       bool      `json:"is_admin"`
@@ -55,6 +58,15 @@ func (u *ExampleUser) Delete() error {
 }
 
 func (u *ExampleUser) Save() error {
+	return nil
+}
+
+func (u *ExampleUser) CopyImmutableAttributes(dest RESTObject) error {
+	if u.IsAdmin {
+		return errors.New("CopyImmutableAttributes arbitrarily errors for admins")
+	}
+	destUser := dest.(*ExampleUser)
+	destUser.DateCreated = u.DateCreated
 	return nil
 }
 
@@ -99,12 +111,14 @@ var usersDB []*ExampleUser = []*ExampleUser{
 		Username: "MaxwellPayne",
 		FavoriteColor: "Red",
 		Password: "banana",
+		DateCreated: time.Now(),
 	},
 	&ExampleUser{
 		ID: 2,
 		Username: "SmokeyTheBear",
 		FavoriteColor: "Blue",
 		Password: "orange",
+		DateCreated: time.Now(),
 	},
 	&ExampleUser{
 		ID: 3,
@@ -112,6 +126,7 @@ var usersDB []*ExampleUser = []*ExampleUser{
 		FavoriteColor: "blood red",
 		Password: "i am the god of the database",
 		IsAdmin: true,
+		DateCreated: time.Now(),
 	},
 }
 
@@ -213,4 +228,41 @@ func TestGetCustomMethod(t *testing.T) {
 	suite := reveltest.NewTestSuite()
 	suite.Get("/userscustomroute")
 	suite.AssertStatus(http.StatusNotFound)
+}
+
+func TestCopyImmutableAttributesCustom(t *testing.T) {
+	suite := reveltest.NewTestSuite()
+	endpoint := "/user"
+	putUrl := "http://" + net.JoinHostPort("localhost", strconv.Itoa(testPort)) + endpoint
+
+	admin := *usersDB[2]
+	suite.Assert(admin.IsAdmin)
+	adminData, _ := json.Marshal(&admin)
+
+	req := suite.PutCustom(putUrl, "application/json", bytes.NewReader(adminData))
+	req.SetBasicAuth(admin.Username, admin.Password)
+	req.MakeRequest()
+	// should have gotten a 500 error from CopyImmutableAttributes
+	suite.AssertStatus(http.StatusInternalServerError)
+
+	nonAdmin := *usersDB[0]
+	originalCreateDate := nonAdmin.DateCreated
+	suite.Assert(!originalCreateDate.IsZero())
+
+	// this is an immutable attribute, should not change
+	newCreateDate := originalCreateDate.Add(time.Hour * 100)
+	nonAdmin.DateCreated = newCreateDate
+	nonAdminData, _ := json.Marshal(&nonAdmin)
+
+	req = suite.PutCustom(putUrl, "application/json", bytes.NewReader(nonAdminData))
+	req.SetBasicAuth(nonAdmin.Username, nonAdmin.Password)
+	req.MakeRequest()
+	suite.AssertOk()
+
+	updatedNonAdmin := ExampleUser{}
+	err := json.Unmarshal(suite.ResponseBody, &updatedNonAdmin)
+	suite.Assert(err == nil)
+	// make sure that attributed did not change
+	suite.Assert(originalCreateDate.Equal(updatedNonAdmin.DateCreated))
+	suite.Assert(!newCreateDate.Equal(updatedNonAdmin.DateCreated))
 }

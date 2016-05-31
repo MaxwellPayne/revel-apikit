@@ -34,17 +34,13 @@ func CreateRESTControllerInjectionFilter(authFunction AuthenticationFunction) re
 }
 
 func APIPanicFilter(c *revel.Controller, fc []revel.Filter) {
-	const defaultErrMsg string = "An unexpected error ocurred"
 	defer func() {
 		if err := recover(); err != nil {
 			if revel.DevMode {
 				revel.ERROR.Print(err, "\n", string(debug.Stack()))
 			}
 
-			c.Result = ApiMessage{
-				StatusCode: http.StatusInternalServerError,
-				Message: revel.Config.StringDefault("apikit.internalservererror", defaultErrMsg),
-			}
+			c.Result = DefaultInternalServerErrorMessage()
 		} else {
 			if c.Response.Status == http.StatusNotFound {
 				// clobber Revel's html template-based NotFound result

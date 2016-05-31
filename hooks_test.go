@@ -16,6 +16,7 @@ import (
 
 type Fish struct {
 	ID         uint64       `json:"id"`
+	CreateDate time.Time    `apikit:"immutable"`
 	FinCount   int          `json:"fin_count"`
 	Color      string       `json:"color"`
 	IsImmortal bool         `json:"is_immortal"`
@@ -192,6 +193,7 @@ var pond []Fish = []Fish{
 		Color: "Red",
 		IsImmortal: false,
 		Owner: usersDB[0],
+		CreateDate: time.Now(),
 	},
 	Fish{
 		ID: 8,
@@ -199,6 +201,7 @@ var pond []Fish = []Fish{
 		Color: "Rainbow",
 		IsImmortal: true,
 		Owner: usersDB[0],
+		CreateDate: time.Now(),
 	},
 }
 
@@ -384,4 +387,26 @@ func TestPostDELETEHook(t *testing.T) {
 	err := json.Unmarshal(suite.ResponseBody, &msg)
 	suite.Assert(err == nil)
 	suite.AssertEqual(msg.Message, fishDeleteSuccessMessage)
+}
+
+func TestCopyImmutableAttributesFromStructTag(t *testing.T) {
+	endpoint := "/fish"
+	fish := pond[0]
+	suite := reveltest.NewTestSuite()
+	originalCreateDate := fish.CreateDate
+	suite.Assert(!originalCreateDate.IsZero())
+
+	// this is an immutable attribute, should not change
+	newCreateDate := originalCreateDate.Add(time.Hour * 100)
+	fish.CreateDate = newCreateDate
+	body, _ := json.Marshal(&fish)
+
+	suite.Put(endpoint, "application/json", bytes.NewReader(body))
+	suite.AssertOk()
+
+	updatedFish := Fish{}
+	err := json.Unmarshal(suite.ResponseBody, &updatedFish)
+	suite.Assert(err == nil)
+	suite.Assert(originalCreateDate.Equal(updatedFish.CreateDate))
+	suite.Assert(!newCreateDate.Equal(updatedFish.CreateDate))
 }

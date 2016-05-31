@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"reflect"
 	"encoding/json"
+	"errors"
 )
 
 type GenericRESTController struct {
@@ -92,6 +93,9 @@ func (c *GenericRESTController) Put() revel.Result {
 	return c.unmarshalRequestBody(&instance, func() revel.Result {
 		// ensure that this is a pre-existing record
 		preExisting := c.modelProvider.GetModelByID(instance.UniqueID())
+		if err := c.copyImmutableAttributes(instance, preExisting); err != nil {
+			return DefaultInternalServerErrorMessage()
+		}
 		if hooker, ok := c.modelProvider.(PUTHooker); ok {
 			if prematureResult := hooker.PrePUTHook(instance, preExisting, c.authenticatedUser); prematureResult != nil {
 				return prematureResult
@@ -181,6 +185,55 @@ func (c *GenericRESTController) unmarshalRequestBody(o interface{}, next func() 
 	return next()
 }
 
+func (c *GenericRESTController) copyImmutableAttributes(newInstance, existingInstance RESTObject) error {
+	if newInstance == nil {
+		return errors.New("Given a nil destination object")
+	}
+	if existingInstance == nil {
+		return errors.New("Given a nil source object")
+	}
+	if copier, ok := existingInstance.(ImmutableAttributeCopier); ok {
+		// use the custom implementation if exists
+		return copier.CopyImmutableAttributes(newInstance)
+	} else {
+		// copy immutable attributes based on struct tags
+		var vOld reflect.Value = reflect.ValueOf(existingInstance)
+		if vOld.Type().Kind() == reflect.Ptr {
+			if vOld.Elem().Type().Kind() == reflect.Struct {
+				vOld = vOld.Elem()
+			} else {
+				return errors.New("Source is not a pointer to a struct")
+			}
+		} else {
+			return errors.New("Source is not a pointer to a struct")
+		}
+
+		var vNew reflect.Value = reflect.ValueOf(newInstance)
+		if vNew.Type().Kind() == reflect.Ptr {
+			if vNew.Elem().Type().Kind() == reflect.Struct {
+				vNew = vNew.Elem()
+			} else {
+				return errors.New("Destination is not a pointer to a struct")
+			}
+		} else {
+			return errors.New("Destination is not a pointer to a struct")
+		}
+
+
+		for i := 0; i < vOld.NumField(); i++ {
+			oldField := vOld.Type().Field(i)
+			if oldField.Tag.Get("apikit") == "immutable" {
+				// this field was marked as immutable
+				fieldName := oldField.Name
+				if newField := vNew.FieldByName(fieldName); newField.IsValid() && newField.CanSet() {
+					newField.Set(vOld.FieldByName(fieldName))
+				}
+			}
+		}
+		return nil
+	}
+}
+
 func DefaultBadRequestMessage() ApiMessage {
 	return ApiMessage{
 		StatusCode: http.StatusBadRequest,
@@ -192,5 +245,13 @@ func DefaultNotFoundMessage() ApiMessage {
 	return ApiMessage{
 		StatusCode: http.StatusNotFound,
 		Message: "Not Found",
+	}
+}
+
+func DefaultInternalServerErrorMessage() ApiMessage {
+	const defaultErrMsg string = "An unexpected error ocurred"
+	return ApiMessage{
+		StatusCode: http.StatusInternalServerError,
+		Message: revel.Config.StringDefault("apikit.internalservererror", defaultErrMsg),
 	}
 }
