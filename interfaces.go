@@ -35,9 +35,3 @@ type User interface {
 	RESTObject
 	HasAdminPrivileges() bool
 }
-
-// Copies attributes that should be immutable from the source RESTObject to the dest RESTObject
-type ImmutableAttributeCopier interface {
-	RESTObject
-	CopyImmutableAttributes(dest RESTObject) error
-}

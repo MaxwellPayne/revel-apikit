@@ -17,6 +17,12 @@ DELETE  /fish/:id                               FishHookerController.Delete
 POST    /fish                                   FishHookerController.Post
 PUT     /fish                                   FishHookerController.Put
 
+# EmbeddedFishController
+GET     /embeddedfish/:id                       EmbeddedFishController.Get
+DELETE  /embeddedfish/:id                       EmbeddedFishController.Delete
+POST    /embeddedfish                           EmbeddedFishController.Post
+PUT     /embeddedfish                           EmbeddedFishController.Put
+
 # this one shouldn't work because it falls outside the RESTController method set
 GET     /userscustomroute                       ExampleUserController.SomeCustomMethod
 

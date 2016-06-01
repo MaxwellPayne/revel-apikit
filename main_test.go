@@ -57,6 +57,7 @@ func TestMain(m *testing.M) {
 	RegisterRESTControllers([]RESTController{
 		(*ExampleUserController)(nil),
 		(*FishHookerController)(nil),
+		(*EmbeddedFishController)(nil),
 	})
 
 	go Run(testPort)
